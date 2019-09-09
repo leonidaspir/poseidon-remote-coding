@@ -32,6 +32,8 @@ Note: The first time you run this command you will be prompted to allow the gene
 
 That's it a new folder will be created in your PlayCanvas project called **remote-scripts** which will automatically sync with your local folder on each file update.
 
+Note: The pipe works only from local to remote and not the other way around.
+
 ## How it works?
 
 1. The pic-serve command is executing a NodeJS script that sets up a file watcher for any .js file.
