@@ -42,6 +42,8 @@ That's it a new folder will be created in your PlayCanvas project called **remot
 
 Note: If you open multiple PlayCanvas projects then the last one will be the one connected to the pic-serve instance.
 
+![PIC Chrome Extension](poseidon-terminal-readme.png)
+
 ## Roadmap
 
 - Allow multiple pic-serve instances running on different ports to allow multiple PlayCanvas projects listening at the same time.
