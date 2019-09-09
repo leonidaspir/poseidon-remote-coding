@@ -4,11 +4,13 @@
   "description": "A remote coding tool for PlayCanvas that allows you to code locally in your favorite editor and have your code uploaded to your PlayCanvas project.",
   "main": "cli.js",
   "dependencies": {
+    "chalk": "^2.4.2",
     "chokidar": "^3.0.2",
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "https": "^1.0.0",
     "https-localhost": "^4.3.0",
+    "minimist": "^1.2.0",
     "socket.io": "^2.2.0"
   },
   "devDependencies": {},
