@@ -28,6 +28,8 @@ Note: The first time you run this command you will be prompted to allow the gene
 
 2. Open your PlayCanvas project in Chrome and make sure that the Poseidon Remote Coding extension is enabled in the PIC Chrome extension.
 
+![PIC Chrome Extension](poseidon-editor-enabled-readme.png)
+
 That's it a new folder will be created in your PlayCanvas project called **remote-scripts** which will automatically sync with your local folder on each file update.
 
 ## How it works?
