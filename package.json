@@ -1,6 +1,6 @@
 {
   "name": "poseidon-remote-coding",
-  "version": "0.9.1",
+  "version": "0.9.5",
   "description": "A remote coding tool for PlayCanvas that allows you to code locally in your favorite editor and have your code uploaded to your PlayCanvas project.",
   "main": "cli.js",
   "dependencies": {
@@ -11,6 +11,8 @@
     "https": "^1.0.0",
     "https-localhost": "^4.3.0",
     "minimist": "^1.2.0",
+    "mmmagic": "^0.5.3",
+    "node-beep": "0.0.3",
     "socket.io": "^2.2.0"
   },
   "devDependencies": {},
