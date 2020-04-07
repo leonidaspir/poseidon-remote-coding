@@ -11,10 +11,15 @@ const chokidar = require("chokidar");
 const path = require("path");
 const argv = require("minimist")(process.argv.slice(2));
 const pjson = require("./package.json");
+const beep = require("node-beep");
+const mmm = require("mmmagic"),
+  Magic = mmm.Magic;
 
 let io;
 let clientSocket;
 let filesWatcher;
+
+const magic = new Magic(mmm.MAGIC_MIME_TYPE);
 
 const deploy = async () => {
   // --- setup server
@@ -37,7 +42,7 @@ const deploy = async () => {
   // --- setup socket io
   io = require("socket.io").listen(server);
 
-  io.on("connection", function(socket) {
+  io.on("connection", function (socket) {
     log(`client connected with id: ${socket.id}`, false, "green");
 
     clientSocket = socket;
@@ -46,7 +51,7 @@ const deploy = async () => {
     log("watch started...");
     startWatchingFiles();
   });
-  io.on("disconnect", function(socket) {
+  io.on("disconnect", function (socket) {
     log(`client disconnected with id: ${socket.id}`, false, "red");
   });
 
@@ -75,33 +80,78 @@ function log(message, omitTime, color) {
   console.log(colouredMessage);
 }
 
+function playSound(times) {
+  if (argv && argv.s) {
+    beep(times ? times : 1);
+  }
+}
+
+const actionEventTypes = ["add", "change", "unlink", "unlinkDir"];
+const actions = [];
+let executing = false;
+
+async function executeActions() {
+  executing = true;
+  const action = actions.shift();
+
+  switch (action.event) {
+    case "add":
+      await uploadFile(action.fullPath);
+      break;
+    case "change":
+      await uploadFile(action.fullPath);
+      break;
+    case "unlink":
+      await removeFile(action.fullPath);
+      break;
+    case "unlinkDir":
+      await removeFolder(action.fullPath);
+      break;
+  }
+
+  if (actions.length > 0) {
+    executeActions();
+  } else {
+    executing = false;
+  }
+}
+
 function startWatchingFiles() {
   if (filesWatcher) {
     filesWatcher.close();
   }
 
   filesWatcher = chokidar
-    .watch(".", { ignored: /(^|[\/\\])\../ })
-    .on("all", (event, fullPath) => {
-      switch (event) {
-        case "add":
-          uploadFile(fullPath);
-          break;
-        case "change":
-          uploadFile(fullPath);
-          break;
-        case "unlink":
-          removeFile(fullPath);
-          break;
-        case "unlinkDir":
-          removeFolder(fullPath);
-          break;
-      }
+    .watch(".", { ignored: /(^|[\/\\])\../, usePolling: true })
+    .on("all", async (event, fullPath) => {
+      if (actionEventTypes.indexOf(event) === -1) return;
+
+      actions.push({
+        event: event,
+        fullPath: fullPath,
+      });
+
+      if (executing === false) executeActions();
     });
 }
 
 function isExtensionAllowed(fullPath) {
-  return path.extname(fullPath) === ".js";
+  const allowed = [".js", ".json", ".glsl", ".txt", ".html", ".css"];
+  return allowed.indexOf(path.extname(fullPath)) > -1;
+}
+
+function getExtensionType(fullPath) {
+  const extension = path.extname(fullPath);
+  const type = {
+    ".js": "script",
+    ".json": "json",
+    ".glsl": "shader",
+    ".txt": "text",
+    ".html": "html",
+    ".css": "css",
+  };
+
+  return type[extension];
 }
 
 function getPromiseID(fullPath, type) {
@@ -109,71 +159,115 @@ function getPromiseID(fullPath, type) {
 }
 
 function uploadFile(fullPath) {
-  if (isExtensionAllowed(fullPath) === false) return;
+  return new Promise((resolve) => {
+    if (isExtensionAllowed(fullPath) === false) {
+      resolve();
+      return;
+    }
 
-  let path = fullPath.replace(/\\/g, "/");
-  path = path.split("/");
+    let path = fullPath.replace(/\\/g, "/");
+    path = path.split("/");
 
-  const filename = path.pop();
-  path = path.join("/");
+    const filename = path.pop();
+    path = path.join("/");
 
-  fs.readFile(fullPath, "utf8", function(err, contents) {
-    if (!contents || contents === "") return false;
+    fs.readFile(fullPath, function (err, contents) {
+      if (!contents || contents === "") {
+        resolve();
+        return;
+      }
 
-    log(`file ${filename} was edited, uploading changes...`, false);
+      const type = getExtensionType(fullPath);
 
-    const id = getPromiseID(fullPath, "updated");
+      if (!type) {
+        resolve();
+        return;
+      }
 
-    clientSocket.once(`file:${id}`, function(data) {
-      log(`${filename} was successfully uploaded.`, false, "green");
-    });
+      log(`file ${filename} was edited, uploading changes...`, false);
 
-    io.emit("file:updated", {
-      id: id,
-      path: path,
-      filename: filename,
-      contents: contents
+      const id = getPromiseID(fullPath, "updated");
+
+      magic.detectFile(fullPath, function (err, mimetype) {
+        if (err) throw err;
+
+        clientSocket.once(`file:${id}`, function (data) {
+          resolve();
+
+          playSound();
+
+          log(`${filename} was successfully uploaded.`, false, "green");
+        });
+
+        io.emit("file:updated", {
+          id: id,
+          path: path,
+          filename: filename,
+          type: type,
+          mimetype: mimetype,
+          contents: contents,
+        });
+      });
     });
   });
 }
 
 function removeFile(fullPath) {
-  if (isExtensionAllowed(fullPath) === false) return;
+  return new Promise((resolve) => {
+    if (isExtensionAllowed(fullPath) === false) {
+      resolve();
+      return;
+    }
 
-  let path = fullPath.replace(/\\/g, "/");
-  path = path.split("/");
+    let path = fullPath.replace(/\\/g, "/");
+    path = path.split("/");
 
-  const filename = path.pop();
-  path = path.join("/");
+    const filename = path.pop();
+    path = path.join("/");
 
-  log(`file ${filename} was removed, uploading changes...`, false);
+    log(`file ${filename} was removed, uploading changes...`, false);
 
-  const id = getPromiseID(fullPath, "removed");
+    const id = getPromiseID(fullPath, "removed");
+    const type = getExtensionType(fullPath);
 
-  clientSocket.once(`file:${id}`, function() {
-    log(`${filename} was deleted.`, false, "red");
-  });
+    if (!type) {
+      resolve();
+      return;
+    }
 
-  io.emit("file:removed", {
-    id: id,
-    path: path,
-    filename: filename
+    clientSocket.once(`file:${id}`, function () {
+      resolve();
+
+      playSound(2);
+      log(`${filename} was deleted.`, false, "red");
+    });
+
+    io.emit("file:removed", {
+      id: id,
+      path: path,
+      filename: filename,
+      type: type,
+    });
   });
 }
 
 function removeFolder(fullPath) {
-  const path = fullPath.replace(/\\/g, "/");
+  return new Promise((resolve) => {
+    const path = fullPath.replace(/\\/g, "/");
 
-  log(`path ${path} was removed, uploading changes...`, false);
+    log(`path ${path} was removed, uploading changes...`, false);
 
-  const id = getPromiseID(fullPath, "removed");
+    const id = getPromiseID(fullPath, "removed");
 
-  clientSocket.once(`file:${id}`, function() {
-    log(`${path} was deleted.`, false, "red");
-  });
+    clientSocket.once(`file:${id}`, function () {
+      resolve();
 
-  io.emit("folder:removed", {
-    id: id,
-    path: path
+      log(`${path} was deleted.`, false, "red");
+    });
+
+    io.emit("folder:removed", {
+      id: id,
+      path: path,
+    });
   });
 }
