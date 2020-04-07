@@ -46,6 +46,21 @@ Note: If you open multiple PlayCanvas projects then the last one will be the one
 
 ![PIC Chrome Extension](poseidon-terminal-readme.png)
 
+## Supported Assets
+
+The following asset files are supported and will be automatically synchronized based on their filename extension:
+
+- .js (script)
+- .json (json)
+- .glsl (shader)
+- .html (html)
+- .css (css)
+- .txt (text)
+
+## Options
+
+- You can use the -s flag when running pic-serve to enable system beep sounds on success events (Windows only).
+
 ## Roadmap
 
 - Allow multiple pic-serve instances running on different ports to allow multiple PlayCanvas projects listening at the same time.
