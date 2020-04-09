@@ -50,6 +50,14 @@ const deploy = async () => {
     // --- files watching
     log("watch started...");
     startWatchingFiles();
+
+    // --- send settings to extension
+    if (argv && argv.r) {
+      io.emit("settings:reloadOnChange", {
+        windowPath: argv.r,
+        state: true,
+      });
+    }
   });
   io.on("disconnect", function (socket) {
     log(`client disconnected with id: ${socket.id}`, false, "red");
