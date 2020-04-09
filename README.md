@@ -60,6 +60,12 @@ The following asset files are supported and will be automatically synchronized b
 ## Options
 
 - You can use the -s flag when running pic-serve to enable system beep sounds on success events (Windows only).
+- You can use the -r [url] flag to automatically open a page that supports live reload. Whenever a file is updated in the Playcanvas editor that browser tab will automatically refresh.
+
+```
+// example usage
+pic-serve -r https://launch.playcanvas.com/235532
+```
 
 ## Roadmap
 
