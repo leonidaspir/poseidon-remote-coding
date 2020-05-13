@@ -11,7 +11,6 @@ const chokidar = require("chokidar");
 const path = require("path");
 const argv = require("minimist")(process.argv.slice(2));
 const pjson = require("./package.json");
-const beep = require("node-beep");
 const mmm = require("mmmagic"),
   Magic = mmm.Magic;
 
@@ -86,12 +85,6 @@ function log(message, omitTime, color) {
   const colouredMessage = color ? chalk[color](output) : output;
 
   console.log(colouredMessage);
-}
-
-function playSound(times) {
-  if (argv && argv.s) {
-    beep(times ? times : 1);
-  }
 }
 
 const actionEventTypes = ["add", "change", "unlink", "unlinkDir"];
@@ -202,8 +195,6 @@ function uploadFile(fullPath) {
         clientSocket.once(`file:${id}`, function (data) {
           resolve();
 
-          playSound();
-
           log(`${filename} was successfully uploaded.`, false, "green");
         });
 
@@ -246,7 +237,6 @@ function removeFile(fullPath) {
     clientSocket.once(`file:${id}`, function () {
       resolve();
 
-      playSound(2);
       log(`${filename} was deleted.`, false, "red");
     });
 
